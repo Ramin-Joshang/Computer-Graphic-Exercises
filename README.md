@@ -2,7 +2,7 @@
 
 This repository contains a collection of exercises for the **Computer Graphics** course, implemented using **OpenGL**. The exercises are designed to help students understand and practice the fundamentals of computer graphics, 3D rendering, transformations, shading, and other core concepts in the field.
 
-📚 **Course**: Computer Graphics (کارشناسی)  
+📚 **Lesson**: Computer Graphics  
 🏛️ **University**: Islamic Azad University, Qazvin - Barajin Branch (QIAU)  
 👨‍🏫 **Instructor**: Dr. Babak Karasfi  
 👨‍💻 **Student**: Ramin Joshang  
