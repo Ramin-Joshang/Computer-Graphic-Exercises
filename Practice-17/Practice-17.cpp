@@ -56,7 +56,8 @@ static int tempX, tempY;
 void drawScene()
 {
     glClear(GL_COLOR_BUFFER_BIT);
-    glColor3f(0.0, 0.0, 0.0);
+    glColor3f(0.6, 0.2, 0.8);
+    glLineWidth(3);
 
     for (const auto& point : points)
         point.drawPoint();
