@@ -1,114 +1,254 @@
 ﻿#include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <cmath>
-#pragma comment(lib, "glew32.lib")
-#include <GL/freeglut.h>
-#include <vector>
 #include <iostream>
+#include <string>
 
-// Structure to store rectangle information
-struct MyRectangle {
-    float startX, startY; // Start point of the rectangle (top-left corner)
-    float endX, endY;     // End point of the rectangle (bottom-right corner)
-    float thickness;      // Thickness of the rectangle border
+#pragma comment(lib, "glew32.lib")
+
+const int WINDOW_WIDTH = 800;
+const int WINDOW_HEIGHT = 800;
+const float ASPECT_RATIO = static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT;
+
+int exerciseIndex = 0;
+const int TOTAL_EXERCISES = 8;
+std::string exerciseNames[TOTAL_EXERCISES] = {
+    "2.27: Sine Curve",
+    "2.28: Ellipse",
+    "2.29: Letter A",
+    "2.30: Number 8",
+    "2.31: Torus Approximation",
+    "2.32: Cone",
+    "2.33: Slide Curve",
+    "2.34: Crescent Moon"
 };
 
-std::vector<MyRectangle> rectangles; // List of all drawn rectangles
-bool isDrawing = false;  // Flag to check if we are currently drawing a rectangle
-float currentThickness = 1.0f; // Current border thickness
-float startX, startY;    // Start point of the current rectangle
-float endX, endY;        // End point of the current rectangle
-
-// Mouse click callback function
-void mouse(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON) {
-        if (state == GLUT_DOWN) {
-            // Start drawing: Set the start point
-            isDrawing = true;
-            startX = (float)x;
-            startY = (float)y;
-            endX = (float)x;
-            endY = (float)y;
-        }
-        else if (state == GLUT_UP) {
-            // Stop drawing: Save the rectangle
-            isDrawing = false;
-            rectangles.push_back({ startX, startY, endX, endY, currentThickness });
-            glutPostRedisplay(); // Request to redraw the screen
-        }
+void drawSineCurve() {
+    const float PI = 3.14159f;
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0.0f, 0.5f, 1.0f);
+    for (int i = 0; i <= 200; ++i) {
+        float x = -PI + i * (2 * PI / 200);
+        glVertex2f(x, sin(x));
     }
-}
-
-// Mouse motion callback function
-void motion(int x, int y) {
-    if (isDrawing) {
-        // Update the end point of the rectangle as the mouse moves
-        endX = (float)x;
-        endY = (float)y;
-        glutPostRedisplay(); // Request to redraw the screen
-    }
-}
-
-// Mouse wheel callback function
-void mouseWheel(int wheel, int direction, int x, int y) {
-    currentThickness += (float)direction; // Adjust thickness based on wheel direction
-    if (currentThickness < 1.0f) currentThickness = 1.0f; // Minimum thickness
-    if (currentThickness > 10.0f) currentThickness = 10.0f; // Maximum thickness
-    glutPostRedisplay(); // Request to redraw the screen
-}
-
-// Function to draw a rectangle
-void drawRectangle(float startX, float startY, float endX, float endY, float thickness) {
-    glLineWidth(thickness); // Set the border thickness
-    glBegin(GL_LINE_LOOP);  // Draw a rectangle border
-    glVertex2f(startX, startY); // Top-left corner
-    glVertex2f(endX, startY);   // Top-right corner
-    glVertex2f(endX, endY);     // Bottom-right corner
-    glVertex2f(startX, endY);   // Bottom-left corner
     glEnd();
 }
 
-// Display callback function
-void display() {
-    glClear(GL_COLOR_BUFFER_BIT); // Clear the screen
-
-    // Draw all stored rectangles
-    for (const auto& rect : rectangles) {
-        drawRectangle(rect.startX, rect.startY, rect.endX, rect.endY, rect.thickness);
+void drawEllipse() {
+    const float PI = 3.14159f;
+    int segments = 100;
+    glBegin(GL_LINE_LOOP);
+    glColor3f(1.0f, 0.0f, 0.5f);
+    for (int i = 0; i <= segments; ++i) {
+        float t = 2 * PI * i / segments;
+        glVertex2f(0.6f * cos(t), 0.3f * sin(t));
     }
-
-    // Draw the current rectangle being drawn (if any)
-    if (isDrawing) {
-        drawRectangle(startX, startY, endX, endY, currentThickness);
-    }
-
-    glutSwapBuffers(); // Swap buffers to display the rendered frame
+    glEnd();
 }
 
-// Initialization function
-void init() {
-    glClearColor(0.0, 0.0, 0.0, 1.0); // Set background color to black
+void drawLetterA() {
+    glColor3f(0.0f, 0.8f, 0.8f);
+
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(-0.5f, -0.5f);
+    glVertex2f(0.0f, 0.6f);
+    glVertex2f(0.5f, -0.5f);
+    glVertex2f(0.3f, -0.5f);
+    glVertex2f(0.18f, -0.2f);
+    glVertex2f(-0.18f, -0.2f);
+    glVertex2f(-0.3f, -0.5f);
+    glEnd();
+
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(-0.1f, 0.0f);
+    glVertex2f(0.0f, 0.3f);
+    glVertex2f(0.1f, 0.0f);
+    glEnd();
+}
+
+void drawNumber8() {
+    const float PI = 3.14159f;
+    int segments = 100;
+
+    glBegin(GL_LINE_LOOP);
+    glColor3f(1.0f, 0.5f, 0.0f);
+    for (int i = 0; i <= segments; ++i) {
+        float theta = 2 * PI * i / segments;
+        glVertex2f(0.3f * cos(theta), 0.3f + 0.3f * sin(theta));
+    }
+    glEnd();
+
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i <= segments; ++i) {
+        float theta = 2 * PI * i / segments;
+        glVertex2f(0.3f * cos(theta), -0.3f + 0.3f * sin(theta));
+    }
+    glEnd();
+}
+
+void drawTorusApproximation() {
+    const float PI = 3.14159f;
+    int segments = 100;
+    int sides = 6;
+
+    glColor3f(0.5f, 0.0f, 0.8f);
+    for (int i = 0; i < sides; ++i) {
+        float a1 = 2 * PI * i / sides;
+        float a2 = 2 * PI * (i + 1) / sides;
+
+        glBegin(GL_LINE_STRIP);
+        for (int j = 0; j <= segments; ++j) {
+            float theta = 2 * PI * j / segments;
+            float x1 = (0.6f + 0.2f * cos(a1)) * cos(theta);
+            float y1 = 0.2f * sin(a1);
+            float x2 = (0.6f + 0.2f * cos(a2)) * cos(theta);
+            float y2 = 0.2f * sin(a2);
+
+            glVertex2f(x1, y1);
+            glVertex2f(x2, y2);
+        }
+        glEnd();
+    }
+}
+
+void drawCone() {
+    const float PI = 3.14159f;
+    int segments = 100;
+
+    glBegin(GL_LINE_LOOP);
+    glColor3f(0.0f, 0.7f, 0.7f);
+    for (int i = 0; i <= segments; ++i) {
+        float angle = 2 * PI * i / segments;
+        glVertex2f(0.5f * cos(angle), -0.5f + 0.5f * sin(angle));
+    }
+    glEnd();
+
+    glBegin(GL_LINES);
+    for (int i = 0; i <= segments; i += 10) {
+        float angle = 2 * PI * i / segments;
+        glVertex2f(0.5f * cos(angle), -0.5f + 0.5f * sin(angle));
+        glVertex2f(0.0f, 0.5f);
+    }
+    glEnd();
+}
+
+void drawSlideCurve() {
+    glBegin(GL_LINE_STRIP);
+    glColor3f(0.8f, 0.2f, 0.2f);
+    for (int i = 0; i <= 100; ++i) {
+        float x = -1.0f + i * (2.0f / 100);
+        float y = 1.0f - x * x;
+        glVertex2f(x, y - 0.5f);
+    }
+    glEnd();
+}
+
+void drawCrescentMoon() {
+    const float PI = 3.14159f;
+    int segments = 100;
+
+    glBegin(GL_TRIANGLE_FAN);
+    glColor3f(1.0f, 1.0f, 0.0f);
+    glVertex2f(0.0f, 0.0f);
+    for (int i = 0; i <= segments; ++i) {
+        float theta = 2 * PI * i / segments;
+        glVertex2f(0.4f * cos(theta), 0.4f * sin(theta));
+    }
+    glEnd();
+
+    glBegin(GL_TRIANGLE_FAN);
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glVertex2f(-0.2f, 0.0f);
+    for (int i = 0; i <= segments; ++i) {
+        float theta = 2 * PI * i / segments;
+        glVertex2f(0.3f + 0.4f * cos(theta), 0.4f * sin(theta));
+    }
+    glEnd();
+}
+
+void renderText(float x, float y, const std::string& text) {
+    glColor3f(0.0f, 0.0f, 0.0f);
+    glRasterPos2f(x, y);
+    for (const char& c : text) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);
+    }
+}
+
+void drawScene() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    renderText(-0.9f, 0.9f, exerciseNames[exerciseIndex]);
+
+    switch (exerciseIndex) {
+    case 0: drawSineCurve(); break;
+    case 1: drawEllipse(); break;
+    case 2: drawLetterA(); break;
+    case 3: drawNumber8(); break;
+    case 4: drawTorusApproximation(); break;
+    case 5: drawCone(); break;
+    case 6: drawSlideCurve(); break;
+    case 7: drawCrescentMoon(); break;
+    }
+
+    renderText(-0.9f, -0.9f, "Use LEFT/RIGHT arrows to navigate");
+
+    glutSwapBuffers();
+}
+
+void setup() {
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glLineWidth(2.0f);
+}
+
+void resize(int w, int h) {
+    glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    // Set up orthographic projection to match window coordinates
-    gluOrtho2D(0, glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT), 0);
+
+    if (w <= h) {
+        gluOrtho2D(-1.0, 1.0, -1.0 * (GLfloat)h / (GLfloat)w, 1.0 * (GLfloat)h / (GLfloat)w);
+    }
+    else {
+        gluOrtho2D(-1.0 * (GLfloat)w / (GLfloat)h, 1.0 * (GLfloat)w / (GLfloat)h, -1.0, 1.0);
+    }
+
     glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
+void keyInput(unsigned char key, int x, int y) {
+    if (key == 27) exit(0);
+}
+
+void specialKeyInput(int key, int x, int y) {
+    if (key == GLUT_KEY_RIGHT) {
+        exerciseIndex = (exerciseIndex + 1) % TOTAL_EXERCISES;
+    }
+    else if (key == GLUT_KEY_LEFT) {
+        exerciseIndex = (exerciseIndex - 1 + TOTAL_EXERCISES) % TOTAL_EXERCISES;
+    }
+    glutPostRedisplay();
 }
 
 int main(int argc, char** argv) {
-    glutInit(&argc, argv); // Initialize GLUT
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); // Set display mode
-    glutInitWindowSize(800, 600); // Set window size
-    glutCreateWindow("OpenGL Rectangle Drawing with GLUT"); // Create a window
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+    glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+    glutInitWindowPosition(100, 100);
+    glutCreateWindow("Ramin Joshang Practice 13");
 
-    init(); // Call initialization function
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        std::cerr << "GLEW Error: " << glewGetErrorString(err) << std::endl;
+        return 1;
+    }
 
-    // Register callback functions
-    glutDisplayFunc(display); // Display callback
-    glutMouseFunc(mouse);     // Mouse click callback
-    glutMotionFunc(motion);   // Mouse motion callback
-    glutMouseWheelFunc(mouseWheel); // Mouse wheel callback
+    glutDisplayFunc(drawScene);
+    glutReshapeFunc(resize);
+    glutKeyboardFunc(keyInput);
+    glutSpecialFunc(specialKeyInput);
 
-    glutMainLoop(); // Enter the main event loop
+    setup();
+    glutMainLoop();
     return 0;
 }
