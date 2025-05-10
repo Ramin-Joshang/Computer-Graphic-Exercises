@@ -2,6 +2,14 @@
 
 This repository contains a collection of exercises for the **Computer Graphics** course, implemented using **OpenGL**. The exercises are designed to help students understand and practice the fundamentals of computer graphics, 3D rendering, transformations, shading, and other core concepts in the field.
 
+📚 **Course**: Computer Graphics (کارشناسی)  
+🏛️ **University**: Islamic Azad University, Qazvin - Barajin Branch (QIAU)  
+👨‍🏫 **Instructor**: Dr. Babak Karasfi  
+👨‍💻 **Student**: Ramin Joshang  
+🌐 **Website**: [Joshang.ir](https://Joshang.ir)
+
+---
+
 ## Table of Contents
 
 - [Exercise 1](#exercise-1)
@@ -101,4 +109,3 @@ Feel free to fork the repository, make changes, and submit pull requests if you 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
