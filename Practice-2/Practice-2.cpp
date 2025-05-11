@@ -1,4 +1,4 @@
-﻿#include <GL/glew.h>
+#include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <GL/glext.h>
 #pragma comment(lib, "glew32.lib")
@@ -78,15 +78,15 @@ void keyInput(unsigned char key, int x, int y)
         orthoNear -= step;
         break;
     case 'p':
-         orthoRight = 100.0f;
-         orthoTop = 0.0f;
-         orthoNear = -1.0f;
+        orthoRight = 100.0f;
+        orthoTop = 0.0f;
+        orthoNear = -1.0f;
         break;
-   
+
     }
     int currentWidth = glutGet(GLUT_WINDOW_WIDTH);
     int currentHeight = glutGet(GLUT_WINDOW_HEIGHT);
-    resize(currentWidth,currentHeight);
+    resize(currentWidth, currentHeight);
     glutPostRedisplay();
 }
 

@@ -1,4 +1,4 @@
-﻿#include <GL/glew.h>
+#include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <GL/glext.h>
 #pragma comment(lib, "glew32.lib")
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
     glutTimerFunc(0, update, 0);
 
     //glClearColor(0.95f, 0.95f, 0.95f, 1.0f);
-    glClearColor(0.0, 0.0, 0.0,0.0);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
     glLineWidth(5.0f);
 
     glutMainLoop();

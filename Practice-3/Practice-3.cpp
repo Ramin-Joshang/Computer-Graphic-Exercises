@@ -1,4 +1,4 @@
-﻿#include <GL/glew.h>
+#include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <GL/glext.h>
 #pragma comment(lib, "glew32.lib")
@@ -90,7 +90,7 @@ void drawPoint(Shape& shape) {
 }
 
 void drawShape(Shape& shape) {
-    int vertexCount = 3; 
+    int vertexCount = 3;
 
     if (shape.type == GL_LINES || shape.type == GL_LINE_STRIP || shape.type == GL_LINE_LOOP) {
         vertexCount = 4;
@@ -104,7 +104,7 @@ void drawShape(Shape& shape) {
     for (int i = 0; i < vertexCount; i++) {
         float angle;
 
-        
+
         if (shape.type == GL_LINES || shape.type == GL_LINE_STRIP || shape.type == GL_LINE_LOOP) {
             angle = M_PI * i / 2.0f;
         }

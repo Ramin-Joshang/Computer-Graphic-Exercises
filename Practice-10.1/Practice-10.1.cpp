@@ -1,4 +1,4 @@
-﻿#include <cstdlib>
+#include <cstdlib>
 #include <cmath>
 #include <iostream>
 
@@ -23,7 +23,7 @@ bool isStopped = false;
 
 float rotationAngle = 0.0f;
 
-void update(int value); 
+void update(int value);
 
 void drawScene(void)
 {
@@ -50,14 +50,14 @@ void resetBall(int value)
     velX = 0.6f;
     velY = 0.0f;
     isStopped = false;
-    glutTimerFunc(10, update, 0);  
+    glutTimerFunc(10, update, 0);
 }
 
 void update(int value)
 {
     if (isStopped)
     {
-        glutTimerFunc(3000, resetBall, 0); 
+        glutTimerFunc(3000, resetBall, 0);
         return;
     }
 

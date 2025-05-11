@@ -1,30 +1,29 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
-#include <GL/glext.h>
 #include <cmath>
 #pragma comment(lib, "glew32.lib")
 
-#define MAX_CIRCLES 100 
-struct Circle {
-    float x, y, r;
+#define MAX_SHAPES 100
+
+struct Shape {
+    float x1, y1, x2, y2;
     bool exists = false;
+    bool isRectangle;
 };
 
-Circle circles[MAX_CIRCLES];
-int circleCount = 0;
+Shape shapes[MAX_SHAPES];
+int shapeCount = 0;
 bool drawing = false;
 float startX, startY;
-float currentRadius = 0.0f;
+float endX, endY;
 
-void drawCircle(float cx, float cy, float r) {
-    int numSegments = 100;
+void drawShape(float x1, float y1, float x2, float y2) {
+
     glBegin(GL_LINE_LOOP);
-    for (int i = 0; i < numSegments; ++i) {
-        float theta = 2.0f * 3.1415926f * i / numSegments;
-        float dx = r * cosf(theta);
-        float dy = r * sinf(theta);
-        glVertex2f(cx + dx, cy + dy);
-    }
+    glVertex2f(x1, y1);
+    glVertex2f(x2, y1);
+    glVertex2f(x2, y2);
+    glVertex2f(x1, y2);
     glEnd();
 }
 
@@ -33,14 +32,16 @@ void drawScene() {
     glColor3f(0.6f, 0.2f, 0.8f);
     glLineWidth(3);
 
-    for (int i = 0; i < circleCount; i++) {
-        if (circles[i].exists) {
-            drawCircle(circles[i].x, circles[i].y, circles[i].r);
+
+    for (int i = 0; i < shapeCount; i++) {
+        if (shapes[i].exists) {
+            drawShape(shapes[i].x1, shapes[i].y1, shapes[i].x2, shapes[i].y2);
         }
     }
 
+
     if (drawing) {
-        drawCircle(startX, startY, currentRadius);
+        drawShape(startX, startY, endX, endY);
     }
 
     glFlush();
@@ -59,12 +60,15 @@ void mouse(int button, int state, int x, int y) {
             drawing = true;
             startX = screenToGlX(x);
             startY = screenToGlY(y);
-            currentRadius = 0.0f;
+            endX = startX;
+            endY = startY;
         }
         else if (state == GLUT_UP) {
             drawing = false;
-            if (circleCount < MAX_CIRCLES) {
-                circles[circleCount++] = { startX, startY, currentRadius, true };
+
+            if (shapeCount < MAX_SHAPES) {
+                bool isRectangle = (startX != endX) && (startY != endY);
+                shapes[shapeCount++] = { startX, startY, endX, endY, true, isRectangle };
             }
         }
         glutPostRedisplay();
@@ -73,10 +77,8 @@ void mouse(int button, int state, int x, int y) {
 
 void motion(int x, int y) {
     if (drawing) {
-        float currentX = screenToGlX(x);
-        float currentY = screenToGlY(y);
-        currentRadius = sqrtf((currentX - startX) * (currentX - startX) +
-            (currentY - startY) * (currentY - startY));
+        endX = screenToGlX(x);
+        endY = screenToGlY(y);
         glutPostRedisplay();
     }
 }
@@ -93,11 +95,12 @@ void resize(int w, int h) {
 void keyInput(unsigned char key, int x, int y) {
     if (key == 27) exit(0);
 
-    if (key == 8 && circleCount > 0) {
-        circles[circleCount - 1].exists = false;
-        circleCount--;
+    if (key == 8 && shapeCount > 0) {
+        shapes[shapeCount - 1].exists = false;
+        shapeCount--;
         glutPostRedisplay();
     }
+
 }
 
 int main(int argc, char** argv) {
