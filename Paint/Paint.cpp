@@ -1,20 +1,64 @@
-// Paint.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+﻿#include <GL/glew.h>
+#include <GL/freeglut.h>
+#include <GL/glext.h>
+#pragma comment(lib, "glew32.lib")
 
-#include <iostream>
+int screenWidth = 0;
+int screenHeight = 0;
 
-int main()
+void drawScene(void)
 {
-    std::cout << "Hello World!\n";
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3f(0.0, 1.0, 0.0);
+    glFlush();
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
+void setup(void)
+{
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+}
 
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+void resize(int w, int h)
+{
+    if (w != screenWidth || h != screenHeight)
+        glutReshapeWindow(screenWidth, screenHeight);
+
+    glViewport(0, 0, screenWidth, screenHeight);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0.0, 100.0, 0.0, 100.0, -1.0, 1.0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
+void keyInput(unsigned char key, int x, int y)
+{
+    if (key == 27) exit(0); 
+}
+
+int main(int argc, char** argv)
+{
+    glutInit(&argc, argv);
+
+    glutInitContextVersion(4, 3);
+    glutInitContextProfile(GLUT_COMPATIBILITY_PROFILE);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA);
+
+    screenWidth = glutGet(GLUT_SCREEN_WIDTH);
+    screenHeight = glutGet(GLUT_SCREEN_HEIGHT);
+
+    glutInitWindowSize(screenWidth, screenHeight);
+    glutInitWindowPosition(0, 0);
+    glutCreateWindow("Paint Project");
+
+    glutDisplayFunc(drawScene);
+    glutReshapeFunc(resize);
+    glutKeyboardFunc(keyInput);
+
+    glewExperimental = GL_TRUE;
+    glewInit();
+
+    setup();
+
+    glutMainLoop();
+}
