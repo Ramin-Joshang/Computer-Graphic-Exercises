@@ -1,309 +1,1513 @@
-﻿#include <cstdlib>
+﻿#define _CRT_SECURE_NO_WARNINGS
+#include <cstdlib>
 #include <vector>
 #include <iostream>
+#include <fstream>
+#include <cmath>
+#include <cstdlib> 
 
-#ifdef __APPLE__
-#  include <GL/glew.h>
-#  include <GL/freeglut.h>
-#  include <OpenGL/glext.h>
-#else
 #  include <GL/glew.h>
 #  include <GL/freeglut.h>
 #  include <GL/glext.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 #pragma comment(lib, "glew32.lib") 
-#endif
 
 using namespace std;
 
-#define INACTIVE 0
-#define POINT 1
-#define LINE 2
-#define RECTANGLE 3
-#define NUMBERPRIMITIVES 3
 
-using namespace std;
 
-// Globals.
-static int width, height; // OpenGL window size.
-static float pointSize = 3.0; // Size of point
-static int primitive = INACTIVE; // Current drawing primitive.
-static int pointCount = 0; // Number of  specified points.
-static int tempX, tempY; // Co-ordinates of clicked point.
-static int isGrid = 1; // Is there grid?
 
-// Point class.
+const int numVertices = 50;
+static int width, height;
+static float pointSize = 5.5;
+static int shape = 3;
+#define PI 3.14159265358979324
+static float R, G, B = 0;
+static float brushR = 0.6, brushG = 0.5, brushB = 0.5;
+static float lineThickness = 1.0f;
+static bool brushMode = false;
+static bool randomColorMode = false;
+float bgR = 0.8f, bgG = 0.8f, bgB = 0.8f;
+
+
+void eraseButton(void)
+{
+
+    float buttonWidth = 0.05 * width;
+    float buttonHeight = 0.05 * height;
+
+    float buttonX1 = 0.005 * width;
+    float buttonY1 = 0.42 * height;
+
+    glColor3f(0.9333, 0.4980, 0.3725);
+    glBegin(GL_QUADS);
+    glVertex2f(buttonX1, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);
+    glEnd();
+
+    glColor3f(0.0, 0.0, 0.0);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(buttonX1, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);
+    glEnd();
+
+    glColor3f(0.0, 0.0, 0.0);
+    float textX = buttonX1 + (buttonWidth / 2) - 36;
+    float textY = buttonY1 + (buttonHeight / 2) - 7;
+
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)"E=eraser");
+}
+
+void randomColorButton(void)
+{
+    glColor3f(bgR, bgG, bgB);
+    glBegin(GL_QUADS);
+    glVertex2f(width - 70, 130);
+    glVertex2f(width - 10, 130);
+    glVertex2f(width - 10, 150);
+    glVertex2f(width - 70, 150);
+    glEnd();
+
+    glColor3f(0.0, 0.0, 0.0);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(width - 70, 130);
+    glVertex2f(width - 10, 130);
+    glVertex2f(width - 10, 150);
+    glVertex2f(width - 70, 150);
+    glEnd();
+
+    glColor3f(0.0, 0.0, 0.0);
+    float textX = width - 48;
+    float textY = 133;
+
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)"Q");
+}
+
+void setNonConflictingRandomColor() {
+    do {
+        R = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        G = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        B = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    } while ((R > 0.8f && G < 0.2f && B < 0.2f) ||
+        (R < 0.2f && G > 0.8f && B < 0.2f) ||
+        (R < 0.2f && G < 0.2f && B > 0.8f));
+}
+
+
+
+void drawGrid(int gridSize) {
+    glColor3f(0.8f, 0.9f, 0.8f);
+    glLineWidth(1.0f);
+
+    glBegin(GL_LINES);
+
+
+    for (int x = 0; x <= width; x += gridSize) {
+        glVertex2f(x, 0);
+        glVertex2f(x, height);
+    }
+
+
+    for (int y = 0; y <= height; y += gridSize) {
+        glVertex2f(0, y);
+        glVertex2f(width, y);
+    }
+
+    glEnd();
+}
+
+
+
+void saveScreenshot(const char* filename)
+{
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    int width = viewport[2];
+    int height = viewport[3];
+
+    unsigned char* pixels = new unsigned char[3 * width * height];
+
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+    unsigned char* flippedPixels = new unsigned char[3 * width * height];
+    for (int y = 0; y < height; ++y)
+    {
+        for (int x = 0; x < width; ++x)
+        {
+            flippedPixels[(height - y - 1) * width * 3 + x * 3 + 0] = pixels[y * width * 3 + x * 3 + 0];
+            flippedPixels[(height - y - 1) * width * 3 + x * 3 + 1] = pixels[y * width * 3 + x * 3 + 1];
+            flippedPixels[(height - y - 1) * width * 3 + x * 3 + 2] = pixels[y * width * 3 + x * 3 + 2];
+        }
+    }
+
+    std::string path = std::string(getenv("USERPROFILE")) + "\\Desktop\\" + filename;
+    stbi_write_png(path.c_str(), width, height, 3, flippedPixels, width * 3);
+
+
+    delete[] pixels;
+    delete[] flippedPixels;
+
+    std::cout << "Screenshot saved to desktop as " << filename << std::endl;
+}
+
+
+
+
+void setLineThickness(float thickness) {
+    if (thickness > 0.0f) {
+        lineThickness = thickness;
+    }
+}
+
+
+
+
+
+
+void lineButton(void)
+{
+    glColor3f(0.8, 0.8, 0.8);
+
+    float buttonWidth = 0.05 * width;
+    float buttonHeight = 0.05 * height;
+
+    float buttonX1 = 0.005 * width;
+    float buttonY1 = 0.75 * height;
+
+    glBegin(GL_QUADS);
+    glVertex2f(buttonX1, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);
+    glEnd();
+
+    glColor3f(0.0, 0.5, 0.5);
+
+    float lineX1 = buttonX1 + 0.01 * width;
+    float lineY1 = buttonY1 + buttonHeight / 2;
+
+    float lineX2 = buttonX1 + buttonWidth - 0.01 * width;
+    float lineY2 = lineY1;
+
+    glBegin(GL_LINES);
+    glVertex2f(lineX1, lineY1);
+    glVertex2f(lineX2, lineY2);
+    glEnd();
+
+    glColor3f(0.0, 0.0, 0.0);
+    glLineWidth(2);
+
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(buttonX1, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);
+    glEnd();
+}
+
+void circleButton(void)
+{
+    glColor3f(0.8, 0.8, 0.8);
+
+    float buttonWidth = 0.05 * width;
+    float buttonHeight = 0.05 * height;
+
+    float buttonX1 = 0.005 * width;
+    float buttonY1 = 0.85 * height;
+
+    glBegin(GL_QUADS);
+    glVertex2f(buttonX1, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);
+    glEnd();
+
+    glColor3f(0.0, 0.5, 0.5);
+
+    float circleRadius = 0.01 * width;
+
+    float circleCenterX = buttonX1 + buttonWidth / 2;
+    float circleCenterY = buttonY1 + buttonHeight / 2;
+
+
+    glBegin(GL_TRIANGLE_FAN);
+    glVertex2f(circleCenterX, circleCenterY);
+    for (int i = 0; i <= 360; i++) {
+        float angle = i * 3.14159f / 180.0f;
+        float x = circleCenterX + cos(angle) * circleRadius;
+        float y = circleCenterY + sin(angle) * circleRadius;
+        glVertex2f(x, y);
+    }
+    glEnd();
+
+    glColor3f(0.0, 0.0, 0.0);
+    glLineWidth(2);
+
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(buttonX1, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);
+    glEnd();
+}
+
+void squareButton(void)
+{
+    glColor3f(0.8, 0.8, 0.8);  // رنگ دکمه (خاکی روشن‌تر)
+
+    float buttonWidth = 0.05 * width;
+    float buttonHeight = 0.05 * height;
+
+    float buttonX1 = 0.005 * width;
+    float buttonY1 = 0.95 * height;
+
+    // رسم دکمه به صورت چهارگوش
+    glBegin(GL_QUADS);
+    glVertex2f(buttonX1, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);
+    glEnd();
+
+    // رنگ مربع داخل دکمه
+    glColor3f(0.0, 0.5, 0.5);  // رنگ مربع آبی ملایم
+
+    // ابعاد مربع داخل دکمه
+    float squareSize = 0.02 * width;  // اندازه مربع کوچکتر از اندازه دکمه
+
+    // موقعیت مربع (مرکز مربع در مرکز دکمه)
+    float squareX = buttonX1 + (buttonWidth - squareSize) / 2;
+    float squareY = buttonY1 + (buttonHeight - squareSize) / 2;
+
+    // رسم مربع داخل دکمه
+    glBegin(GL_QUADS);
+    glVertex2f(squareX, squareY);
+    glVertex2f(squareX + squareSize, squareY);
+    glVertex2f(squareX + squareSize, squareY + squareSize);
+    glVertex2f(squareX, squareY + squareSize);
+    glEnd();
+
+    // رسم مرز اطراف دکمه
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز سیاه
+    glLineWidth(2);  // ضخامت خط مرز
+
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(buttonX1, buttonY1);  // پایین چپ
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);  // پایین راست
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);  // بالا راست
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);  // بالا چپ
+    glEnd();
+}
+
+
+
+
+
+
+
+
+void clearButton(void)
+{
+    glColor3f(0.9333, 0.4980, 0.3725);
+
+    float buttonWidth = 0.05 * width;
+    float buttonHeight = 0.05 * height;
+
+    float buttonX1 = 0.005 * width;
+    float buttonY1 = 0.1 * height;
+
+
+    glBegin(GL_QUADS);
+    glVertex2f(buttonX1, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);
+    glEnd();
+
+    // رنگ خط مرزی
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز سیاه
+
+    glLineWidth(2);  // ضخامت خط مرز
+
+    // رسم مرز اطراف دکمه
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(buttonX1, buttonY1);  // پایین چپ
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);  // پایین راست
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);  // بالا راست
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);  // بالا چپ
+    glEnd();
+
+    // رنگ متن
+    glColor3f(0.0, 0.0, 0.0);  // رنگ متن
+
+    // موقعیت متن
+    float textX = buttonX1 + (buttonWidth / 2) - 26;
+    float textY = buttonY1 + (buttonHeight / 2) - 5;
+
+    // نمایش متن روی دکمه
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)"C = Clear");
+}
+
+
+void lineclearButton(void)
+{
+    glColor3f(0.9333, 0.4980, 0.3725);  // رنگ پس‌زمینه دکمه (روشن‌تر)
+
+    float buttonWidth = 0.05 * width;
+    float buttonHeight = 0.05 * height;
+
+    // موقعیت دکمه h زیر دکمه clear
+    float buttonX1 = 0.005 * width;
+    float buttonY1 = 0.37 * height - buttonHeight - 0.01 * height;  // موقعیت دکمه h
+
+    // رسم دکمه به صورت چهارگوش
+    glBegin(GL_QUADS);
+    glVertex2f(buttonX1, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);
+    glEnd();
+
+    // رنگ خط مرزی
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز سیاه
+
+    glLineWidth(2);  // ضخامت خط مرز
+
+    // رسم مرز اطراف دکمه
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(buttonX1, buttonY1);  // پایین چپ
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);  // پایین راست
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);  // بالا راست
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);  // بالا چپ
+    glEnd();
+
+    // رنگ متن
+    glColor3f(0.0, 0.0, 0.0);  // رنگ متن
+
+    // موقعیت متن
+    float textX = buttonX1 + (buttonWidth / 2) - 35;  // جابجایی متن در محور x
+    float textY = buttonY1 + (buttonHeight / 2) - 5;  // جابجایی متن در محور y
+
+    // نمایش متن روی دکمه
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)"L = lineclear");
+}
+
+
+
+void brushButton(void)
+{
+    glColor3f(0.9333, 0.4980, 0.3725); // رنگ پس‌زمینه دکمه (روشن‌تر)
+
+    // ابعاد دکمه
+    float buttonWidth = 0.05 * width;
+    float buttonHeight = 0.05 * height;
+
+    // موقعیت دکمه جدید بالای دکمه clear
+    float buttonX1 = 0.005 * width;
+    float buttonY1 = 0.20 * height;  // موقعیت Y کمی بالاتر از دکمه clear
+
+    // رسم دکمه به صورت چهارگوش
+    glBegin(GL_QUADS);
+    glVertex2f(buttonX1, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);
+    glEnd();
+
+    // رنگ خط مرزی
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز سیاه
+
+    glLineWidth(2);  // ضخامت خط مرز
+
+    // رسم مرز اطراف دکمه
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(buttonX1, buttonY1);  // پایین چپ
+    glVertex2f(buttonX1 + buttonWidth, buttonY1);  // پایین راست
+    glVertex2f(buttonX1 + buttonWidth, buttonY1 + buttonHeight);  // بالا راست
+    glVertex2f(buttonX1, buttonY1 + buttonHeight);  // بالا چپ
+    glEnd();
+
+    // رنگ متن
+    glColor3f(0.0, 0.0, 0.0);  // رنگ متن
+
+    // موقعیت متن
+    float textX = buttonX1 + (buttonWidth / 2) - 26;  // تنظیم موقعیت افقی متن
+    float textY = buttonY1 + (buttonHeight / 2) - 5;  // تنظیم موقعیت عمودی متن
+
+    // نمایش متن روی دکمه
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)"A = Brush");
+}
+
+
+
+
+
+
+
+void redButton(void)
+{
+    // رسم دکمه قرمز
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_QUADS);
+    glVertex2f(width - 70, 10);
+    glVertex2f(width - 10, 10);
+    glVertex2f(width - 10, 30);
+    glVertex2f(width - 70, 30);
+    glEnd();
+
+    // رسم مرز سیاه
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(width - 70, 10);
+    glVertex2f(width - 10, 10);
+    glVertex2f(width - 10, 30);
+    glVertex2f(width - 70, 30);
+    glEnd();
+
+    // تنظیم رنگ برای رسم متن
+    glColor3f(0.0, 0.0, 0.0);
+
+    // محاسبه مختصات وسط دکمه برای نوشتن "R"
+    float textX = width - 70 + (60 / 2) - 5;  // نصف عرض دکمه منهای نصف عرض متن "R"
+    float textY = 4 + (20 / 2);           // نصف ارتفاع دکمه به اضافه مقدار تنظیمی برای وسط بودن عمودی
+
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)"R");
+}
+
+
+void greenButton(void)
+{
+    // رسم دکمه سبز
+    glColor3f(0.0, 1.0, 0.0);
+    glBegin(GL_QUADS);
+    glVertex2f(width - 70, 40);
+    glVertex2f(width - 10, 40);
+    glVertex2f(width - 10, 60);
+    glVertex2f(width - 70, 60);
+    glEnd();
+
+    // رسم مرز سیاه
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(width - 70, 40);
+    glVertex2f(width - 10, 40);
+    glVertex2f(width - 10, 60);
+    glVertex2f(width - 70, 60);
+    glEnd();
+
+    // تنظیم رنگ برای رسم متن
+    glColor3f(0.0, 0.0, 0.0);
+
+    // محاسبه مختصات وسط دکمه برای نوشتن "G"
+    float textX = width - 70 + (60 / 2) - 8;  // نصف عرض دکمه منهای عرض تقریبی متن "G"
+    float textY = 40 + (20 / 2) - 7;          // نصف ارتفاع دکمه منهای ارتفاع تقریبی متن "G"
+
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)"G");
+}
+
+
+void blueButton(void)
+{
+    // رسم دکمه آبی
+    glColor3f(0.0, 0.0, 1.0);
+    glBegin(GL_QUADS);
+    glVertex2f(width - 70, 70);
+    glVertex2f(width - 10, 70);
+    glVertex2f(width - 10, 90);
+    glVertex2f(width - 70, 90);
+    glEnd();
+
+    // رسم مرز سیاه
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(width - 70, 70);
+    glVertex2f(width - 10, 70);
+    glVertex2f(width - 10, 90);
+    glVertex2f(width - 70, 90);
+    glEnd();
+
+    // تنظیم رنگ برای رسم متن
+    glColor3f(0.0, 0.0, 0.0);
+
+    // محاسبه مختصات وسط دکمه برای نوشتن "B"
+    float textX = width - 70 + (60 / 2) - 8;  // نصف عرض دکمه منهای عرض تقریبی متن "B"
+    float textY = 70 + (20 / 2) - 6;          // نصف ارتفاع دکمه منهای ارتفاع تقریبی متن "B"
+
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)"B");
+}
+
+
+void blackButton(void)
+{
+    // رسم دکمه
+    glColor3f(0.0, 0.0, 0.0);  // رنگ دکمه
+    glBegin(GL_QUADS);
+    glVertex2f(width - 70, 100);   // گوشه پایین چپ
+    glVertex2f(width - 10, 100);   // گوشه پایین راست
+    glVertex2f(width - 10, 120);   // گوشه بالای راست
+    glVertex2f(width - 70, 120);   // گوشه بالای چپ
+    glEnd();
+
+    // رسم مرز سیاه
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(width - 70, 100);   // گوشه پایین چپ
+    glVertex2f(width - 10, 100);   // گوشه پایین راست
+    glVertex2f(width - 10, 120);   // گوشه بالای راست
+    glVertex2f(width - 70, 120);   // گوشه بالای چپ
+    glEnd();
+
+    // رنگ برای متن
+    glColor3f(1.0, 1.0, 1.0);  // سفید برای متن
+
+    // موقعیت شروع رسم متن
+    float textX = width - 45;   // موقعیت افقی برای رسم متن
+    float textY = 105;          // موقعیت عمودی برای رسم متن
+
+    // رسم حرف "S"
+    glRasterPos2f(textX, textY);
+    glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 'S');
+}
+
+
+
+void increaseButton(void)
+{
+    glColor3f(0.5, 0.5, 0.5);  // رنگ دکمه (خاکی روشن)
+
+    // ابعاد دکمه
+    float buttonWidth = 60;   // عرض دکمه
+    float buttonHeight = 20;  // ارتفاع دکمه
+
+    // موقعیت دکمه جدید دقیقا بالای دکمه آبی
+    float buttonX = width - 70;  // همان موقعیت X دکمه آبی
+    float buttonY = 90 + 70;     // موقعیت Y بالای دکمه آبی
+
+    // رسم دکمه به صورت چهارگوش
+    glBegin(GL_QUADS);
+    glVertex2f(buttonX, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY + buttonHeight);
+    glVertex2f(buttonX, buttonY + buttonHeight);
+    glEnd();
+
+    // رسم مرز سیاه
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(buttonX, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY + buttonHeight);
+    glVertex2f(buttonX, buttonY + buttonHeight);
+    glEnd();
+
+    // رنگ متن
+    glColor3f(0.0, 0.0, 0.0);  // سیاه
+
+    // موقعیت متن
+    float textX = buttonX + (buttonWidth / 2) - 5;  // تنظیم موقعیت افقی متن
+    float textY = buttonY + (buttonHeight / 2) - 5;  // تنظیم موقعیت عمودی متن
+
+    // نمایش متن روی دکمه
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)"+");
+}
+
+
+
+void decreaseButton(void)
+{
+    glColor3f(0.5, 0.5, 0.5);  // رنگ دکمه (خاکی روشن)
+
+    // ابعاد دکمه
+    float buttonWidth = 60;   // عرض دکمه
+    float buttonHeight = 20;  // ارتفاع دکمه
+
+    // موقعیت دکمه جدید دقیقا بالای دکمه آبی
+    float buttonX = width - 70;  // همان موقعیت X دکمه آبی
+    float buttonY = 90 + 100;    // موقعیت Y بالای دکمه آبی
+
+    // رسم دکمه به صورت چهارگوش
+    glBegin(GL_QUADS);
+    glVertex2f(buttonX, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY + buttonHeight);
+    glVertex2f(buttonX, buttonY + buttonHeight);
+    glEnd();
+
+    // رسم مرز سیاه
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(buttonX, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY + buttonHeight);
+    glVertex2f(buttonX, buttonY + buttonHeight);
+    glEnd();
+
+    // رنگ متن
+    glColor3f(0.0, 0.0, 0.0);  // سیاه
+
+    // موقعیت متن
+    float textX = buttonX + (buttonWidth / 2) - 5;  // تنظیم موقعیت افقی متن
+    float textY = buttonY + (buttonHeight / 2) - 5;  // تنظیم موقعیت عمودی متن
+
+    // نمایش متن روی دکمه
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)"-");
+}
+
+
+
+void saveButton(void)
+{
+    glColor3f(0.5, 0.5, 0.5);  // رنگ دکمه (خاکی روشن)
+
+    // ابعاد دکمه
+    float buttonWidth = 60;   // عرض دکمه
+    float buttonHeight = 20;  // ارتفاع دکمه
+
+    // موقعیت دکمه جدید دقیقا بالای دکمه decreaseButton
+    float buttonX = width - 70;  // همان موقعیت X دکمه decreaseButton
+    float buttonY = 90 + 100 + buttonHeight + 10; // موقعیت Y بالای دکمه decreaseButton (با فاصله)
+
+    // رسم دکمه به صورت چهارگوش
+    glBegin(GL_QUADS);
+    glVertex2f(buttonX, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY + buttonHeight);
+    glVertex2f(buttonX, buttonY + buttonHeight);
+    glEnd();
+
+    // رسم مرز سیاه
+    glColor3f(0.0, 0.0, 0.0);  // رنگ مرز
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(buttonX, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY);
+    glVertex2f(buttonX + buttonWidth, buttonY + buttonHeight);
+    glVertex2f(buttonX, buttonY + buttonHeight);
+    glEnd();
+
+    // رنگ متن
+    glColor3f(0.0, 0.0, 0.0);  // سیاه
+
+    // موقعیت متن
+    float textX = buttonX + (buttonWidth / 2) - 27;  // تنظیم موقعیت افقی متن برای "Save"
+    float textY = buttonY + (buttonHeight / 2) - 5;  // تنظیم موقعیت عمودی متن
+
+    // نمایش متن روی دکمه
+    glRasterPos2f(textX, textY);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)"W = Save");
+}
+
+
+
+
+
+
+
 class Point
 {
 public:
-    Point(int xVal, int yVal)
+    Point(int x, int y)
     {
-        x = xVal; y = yVal;
+        xVal = x; yVal = y;
     }
-    void drawPoint(void); // Function to draw a point.
+    Point() {};
+    void setCoords(int x, int y)
+    {
+        xVal = x; yVal = y;
+    }
+    void drawPoint(void);
+    int getCoordsX()
+    {
+        return xVal;
+    }
+    int getCoordsY()
+    {
+        return yVal;
+    }
+    void setColor(float R, float G, float B)
+    {
+        this->R = R;
+        this->G = G;
+        this->B = B;
+    }
 private:
-    int x, y; // x and y co-ordinates of point.
-    static float size; // Size of point.
+    int xVal, yVal;
+    float R, G, B;
+    static float size;
 };
 
-float Point::size = pointSize; // Set point size.
+float Point::size = pointSize;
 
-// Function to draw a point.
-void Point::drawPoint()
+
+void Point::drawPoint(void)
 {
+    glColor3f(R, G, B);
     glPointSize(size);
     glBegin(GL_POINTS);
-    glVertex3f(x, y, 0.0);
+    glVertex3f(xVal, yVal, 0.0);
     glEnd();
 }
 
-// Vector of points.
-vector<Point> points;
 
-// Iterator to traverse a Point array.
-vector<Point>::iterator pointsIterator;
 
-// Function to draw all points in the points array.
-void drawPoints(void)
-{
-    // Loop through the points array drawing each point.
-    pointsIterator = points.begin();
-    while (pointsIterator != points.end())
-    {
-        pointsIterator->drawPoint();
-        pointsIterator++;
-    }
-}
 
-// Line class.
+
 class Line
 {
 public:
-    Line(int x1Val, int y1Val, int x2Val, int y2Val)
+    Line(Point p1, Point p2)
     {
-        x1 = x1Val; y1 = y1Val; x2 = x2Val; y2 = y2Val;
+        this->p1 = p1;
+        this->p2 = p2;
     }
-    void drawLine();
+    void setPoints(Point p1, Point p2) {
+        this->p1 = p1;
+        this->p2 = p2;
+    }
+    void setColor(float R, float G, float B)
+    {
+        this->R = R;
+        this->G = G;
+        this->B = B;
+    }
+
+
+    void drawLine(void) {
+        glLineWidth(lineThickness);  // تنظیم ضخامت خط
+        glBegin(GL_LINES);
+        glColor3f(R, G, B);
+        glVertex2f(p1.getCoordsX(), p1.getCoordsY());
+        glVertex2f(p2.getCoordsX(), p2.getCoordsY());
+        glEnd();
+        glFlush();
+    }
+
+
 private:
-    int x1, y1, x2, y2; // x and y co-ordinates of endpoints.
+    Point p1;
+    Point p2;
+    float R, G, B = 0;
 };
 
-// Function to draw a line.
-void Line::drawLine()
-{
-    glBegin(GL_LINES);
-    glVertex3f(x1, y1, 0.0);
-    glVertex3f(x2, y2, 0.0);
-    glEnd();
-}
 
-// Vector of lines.
+
+
+class Circle
+{
+public:
+    Circle(Point p1, Point p2)
+    {
+        this->p1 = p1;
+        this->p2 = p2;
+    }
+
+    void setPoints(Point p1, Point p2) {
+        this->p1 = p1;
+        this->p2 = p2;
+    }
+    void setColor(float R, float G, float B)
+    {
+        this->R = R;
+        this->G = G;
+        this->B = B;
+    }
+    void drawCircle(void)
+    {
+        float t = 0;
+        glBegin(GL_LINE_LOOP);
+
+        glColor3f(R, G, B);
+        float R = sqrt(pow(p2.getCoordsX() - p1.getCoordsX(), 2) + pow(p2.getCoordsY() - p1.getCoordsY(), 2));
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < numVertices; ++i)
+        {
+            glVertex3f(p1.getCoordsX() + R * cos(t), p1.getCoordsY() + R * sin(t), 0.0);
+            t += 2 * PI / numVertices;
+        }
+        glEnd();
+        glFlush();
+    }
+
+private:
+    Point p1;
+    Point p2;
+    float R, G, B = 0;
+};
+
+
+
+
+class Square
+{
+public:
+    Square(Point p1, Point p2)
+    {
+        this->p1 = p1;
+        this->p2 = p2;
+    }
+
+    void setPoints(Point p1, Point p2)
+    {
+        this->p1 = p1;
+        this->p2 = p2;
+    }
+    void setColor(float R, float G, float B)
+    {
+        this->R = R;
+        this->G = G;
+        this->B = B;
+    }
+    void drawSquare(void)
+    {
+        glBegin(GL_LINE_LOOP);
+        glColor3f(R, G, B);
+        glVertex2f(p1.getCoordsX(), p1.getCoordsY());
+        glVertex2f(p1.getCoordsX(), p2.getCoordsY());
+        glVertex2f(p2.getCoordsX(), p2.getCoordsY());
+        glVertex2f(p2.getCoordsX(), p1.getCoordsY());
+        glEnd();
+        glFlush();
+    }
+
+private:
+    Point p1;
+    Point p2;
+    float R, G, B = 0;
+};
+vector<Point> points;
+vector<Point>::iterator pointsIterator;
+Point currentPoint;
+Point lastClickedPoint;
 vector<Line> lines;
-
-// Iterator to traverse a Line array.
 vector<Line>::iterator linesIterator;
+vector<Circle> circles;
+vector<Circle>::iterator circleIterator;
+vector<Square> squares;
+vector<Square>::iterator squareIterator;
 
-// Function to draw all lines in the lines array.
-void drawLines(void)
+
+
+
+void drawScene(void)
 {
-    // Loop through the lines array drawing each line.
+    glClearColor(1.0, 1.0, 0.7, 0.0); // Set background color to white
+    glClear(GL_COLOR_BUFFER_BIT);     // Clear the color buffer
+
+    // Draw the buttons for selecting the shapes
+    drawGrid(30);
+    circleButton();
+    squareButton();
+    lineButton();
+    redButton();
+    greenButton();
+    blueButton();
+    blackButton();
+    clearButton();  // Draw the "Clear" button
+    increaseButton();
+    decreaseButton();
+    brushButton();
+    lineclearButton();
+    randomColorButton();
+    saveButton();
+    eraseButton();
+
+
+
     linesIterator = lines.begin();
     while (linesIterator != lines.end())
     {
-        linesIterator->drawLine();
+        linesIterator->drawLine();  // Draw each line
         linesIterator++;
     }
-}
 
-// Rectangle class.
-class Rect
-{
-public:
-    Rect(int x1Val, int y1Val, int x2Val, int y2Val)
+    pointsIterator = points.begin();
+    while (pointsIterator != points.end())
     {
-        x1 = x1Val; y1 = y1Val; x2 = x2Val; y2 = y2Val;
+        pointsIterator->drawPoint();  // Draw each point
+        pointsIterator++;
     }
-    void drawRectangle();
-private:
-    int x1, y1, x2, y2; // x and y co-ordinates of diagonally opposite vertices.
-};
 
-// Function to draw a rectangle.
-void Rect::drawRectangle()
-{
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glRectf(x1, y1, x2, y2);
-}
-
-// Vector of rectangles.
-vector<Rect> rectangles;
-
-// Iterator to traverse a Rect array.
-vector<Rect>::iterator rectanglesIterator;
-
-// Function to draw all rectangles in the rectangles array.
-void drawRectangles(void)
-{
-    // Loop through the rectangles array drawing each rectangle.
-    rectanglesIterator = rectangles.begin();
-    while (rectanglesIterator != rectangles.end())
+    circleIterator = circles.begin();
+    while (circleIterator != circles.end())
     {
-        rectanglesIterator->drawRectangle();
-        rectanglesIterator++;
+        circleIterator->drawCircle();  // Draw each circle
+        circleIterator++;
     }
-}
 
-// Function to draw the menu bar at the top.
-void drawMenuBar(void)
-{
-    glColor3f(0.7, 0.7, 0.7); // Light gray color for the menu bar.
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glRectf(0.0, height - 50, width, height); // Create a rectangle for the menu bar.
-
-    glColor3f(0.0, 0.0, 0.0); // Black for menu text.
-    glRasterPos2f(20.0, height - 30);
-    const char* menuText = "Paint - [P]oint, [L]ine, [R]ectangle, [G]rid Toggle, [C]lear";
-    for (const char* c = menuText; *c != '\0'; c++) {
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
-    }
-}
-
-// Function to draw a grid.
-void drawGrid(void)
-{
-    int i;
-
-    glEnable(GL_LINE_STIPPLE);
-    glLineStipple(1, 0x5555);
-    glColor3f(0.75, 0.75, 0.75);
-
-    glBegin(GL_LINES);
-    for (i = 2; i <= 9; i++)
+    squareIterator = squares.begin();
+    while (squareIterator != squares.end())
     {
-        glVertex3f(i * 0.1 * width, 0.0, 0.0);
-        glVertex3f(i * 0.1 * width, height, 0.0);
+        squareIterator->drawSquare();  // Draw each square
+        squareIterator++;
     }
-    for (i = 1; i <= 9; i++)
+
+    // Draw the shape in progress (line, circle, or square)
+    switch (shape)
     {
-        glVertex3f(0.1 * width, i * 0.1 * height, 0.0);
-        glVertex3f(width, i * 0.1 * height, 0.0);
+    case 0:  // Line
+    {
+        Line currentLine(lastClickedPoint, currentPoint);
+        currentLine.setColor(R, G, B);
+        currentLine.drawLine();
+        break;
     }
-    glEnd();
-    glDisable(GL_LINE_STIPPLE);
+    case 2:  // Circle
+    {
+        Circle currentCircle(lastClickedPoint, currentPoint);
+        currentCircle.setColor(R, G, B);
+        currentCircle.drawCircle();
+        break;
+    }
+    case 3:  // Square
+    {
+        Square currentSquare(lastClickedPoint, currentPoint);
+        currentSquare.setColor(R, G, B);
+        currentSquare.drawSquare();
+        break;
+    }
+    }
+
+
+
+
+    if (brushMode) {
+        pointsIterator = points.begin();
+        while (pointsIterator != points.end()) {
+
+            currentPoint.setColor(R, G, B);
+            pointsIterator->drawPoint();
+            pointsIterator++;
+        }
+    }
+
+    glFlush();  // Ensure all OpenGL commands are executed
 }
 
-// Drawing routine.
-void drawScene(void)
+
+
+void clearShapes()
 {
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    drawMenuBar(); // Draw the top menu bar.
-
-    drawPoints();
-    drawLines();
-    drawRectangles();
-
-    if (primitive == LINE || primitive == RECTANGLE)
-        //if (pointCount == 1) drawTempPoint();
-    if (isGrid) drawGrid();
-
-    glutSwapBuffers();
+    points.clear();
+    lines.clear();
+    circles.clear();
+    squares.clear();
+    glutPostRedisplay();  // Redraw the screen to reflect the cleared shapes
 }
 
-// Mouse control routine.
+
+
+void clearline()
+{
+
+    lines.clear();
+
+    glutPostRedisplay();  // Redraw the screen to reflect the cleared shapes
+}
+
+
+
+
+
+void keyInput(unsigned char key, int x, int y)
+{
+    switch (key)
+    {
+    case ' ':
+        exit(0);
+        break;
+    case '1':
+        shape = 0;
+        lastClickedPoint.setCoords(0, 0);
+        currentPoint.setCoords(0, 0);
+        glutPostRedisplay();
+        break;
+    case '2':
+        shape = 2;
+        lastClickedPoint.setCoords(0, 0);
+        currentPoint.setCoords(0, 0);
+        glutPostRedisplay();
+        break;
+    case '3':
+        shape = 3;
+        lastClickedPoint.setCoords(0, 0);
+        currentPoint.setCoords(0, 0);
+        glutPostRedisplay();
+        break;
+    case 'r':
+        R = 1;
+        G = 0;
+        B = 0;
+        lastClickedPoint.setCoords(0, 0);
+        currentPoint.setCoords(0, 0);
+        glutPostRedisplay();
+        break;
+    case 'b':
+        R = 0;
+        G = 0;
+        B = 1;
+        lastClickedPoint.setCoords(0, 0);
+        currentPoint.setCoords(0, 0);
+        glutPostRedisplay();
+        break;
+    case 'e':
+        R = 1;
+        G = 1;
+        B = 0.7;
+        pointSize = 15;
+        lastClickedPoint.setCoords(0, 0);
+        currentPoint.setCoords(0, 0);
+        glutPostRedisplay();
+        break;
+    case 'g':
+        R = 0;
+        G = 1;
+        B = 0;
+        lastClickedPoint.setCoords(0, 0);
+        currentPoint.setCoords(0, 0);
+        glutPostRedisplay();
+        break;
+    case 's':
+        R = 0;
+        G = 0;
+        B = 0;
+        lastClickedPoint.setCoords(0, 0);
+        currentPoint.setCoords(0, 0);
+        glutPostRedisplay();
+        break;
+    case 'c':
+        clearShapes();
+        break;
+    case 'l':
+        clearline();
+        break;
+    case 'a':  // فعال کردن حالت قلم‌مو
+        brushMode = !brushMode;
+        if (brushMode) {
+            std::cout << "Brush mode activated!" << std::endl;
+            glutSetCursor(GLUT_CURSOR_CROSSHAIR);  // تغییر به نشانه‌گر قلم‌مو
+        }
+        else {
+            std::cout << "Brush mode deactivated!" << std::endl;
+            glutSetCursor(GLUT_CURSOR_LEFT_ARROW);  // بازگرداندن نشانه‌گر پیش‌فرض
+        }
+        break;
+
+    case 'w': // 's' key for saving screenshot
+        saveScreenshot("screenshot.png");
+        glutPostRedisplay();
+        break;
+    case '+':  // افزایش ضخامت خط
+        setLineThickness(lineThickness + 1.0f); // افزایش ضخامت
+        break;
+    case '-':  // کاهش ضخامت خط
+        setLineThickness(lineThickness - 1.0f); // کاهش ضخامت
+        break;
+
+    case 'q':  // ???? ???? ??? ??????
+        randomColorMode = !randomColorMode;
+        if (randomColorMode) {
+            std::cout << "Random color mode activated!" << std::endl;
+        }
+        else {
+            std::cout << "Random color mode deactivated!" << std::endl;
+        }
+        glutPostRedisplay();
+        break;
+
+
+
+
+    default:
+        break;
+
+    }
+}
+
+
 void mouseControl(int button, int state, int x, int y)
 {
-    y = height - y; // Correct for OpenGL's origin being at the bottom-left.
+    int viewportY = height - y;  // تبدیل مختصات به مختصات OpenGL
 
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
-    {
-        if (x < 0.1 * width) // Left sidebar
-        {
-            // Handle menu selection based on y position
-            if (y > height - 50 && y < height) primitive = POINT;
-            else if (y > height - 100 && y < height - 50) primitive = LINE;
-            else if (y > height - 150 && y < height - 100) primitive = RECTANGLE;
-        }
-        else // Canvas area
-        {
-            if (primitive == POINT) points.push_back(Point(x, y));
-            else if (primitive == LINE)
-            {
-                if (pointCount == 0)
-                {
-                    tempX = x; tempY = y;
-                    pointCount++;
-                }
-                else
-                {
-                    lines.push_back(Line(tempX, tempY, x, y));
-                    pointCount = 0;
-                }
-            }
-            else if (primitive == RECTANGLE)
-            {
-                if (pointCount == 0)
-                {
-                    tempX = x; tempY = y;
-                    pointCount++;
-                }
-                else
-                {
-                    rectangles.push_back(Rect(tempX, tempY, x, y));
-                    pointCount = 0;
-                }
-            }
+
+    // دکمه افزایش ضخامت
+    if (x >= width - 70 && x <= width - 10 && viewportY >= 160 && viewportY <= 180) {
+        setLineThickness(lineThickness + 1.0f); // افزایش ضخامت
+        glutPostRedisplay();
+        return;
+    }
+
+    // دکمه کاهش ضخامت
+    if (x >= width - 70 && x <= width - 10 && viewportY >= 190 && viewportY <= 210) {
+        setLineThickness(lineThickness - 1.0f); // کاهش ضخامت
+        glutPostRedisplay();
+        return;
+    }
+
+    // دکمه Save Screenshot
+    if (x >= (width - 70) && x <= (width - 10) &&
+        viewportY >= (90 + 100 + 20 + 10) &&
+        viewportY <= (90 + 100 + 20 + 10 + 20)) {
+        std::cout << "Save Screenshot button clicked!" << std::endl;
+        saveScreenshot("Paint.jpg"); // ذخیره اسکرین‌شات
+        glutPostRedisplay();
+        return;
+    }
+
+
+    // دکمه Lineclear
+    if (x >= 0.005 * width && x <= 0.055 * width &&
+        viewportY >= (0.37 * height - 0.05 * height - 0.01 * height) &&
+        viewportY <= (0.37 * height - 0.01 * height)) {
+        std::cout << "Lineclear button clicked!" << std::endl;
+        clearline(); // پاک کردن خطوط
+        glutPostRedisplay(); // بازخوانی صفحه
+        return;
+    }
+
+
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        float buttonX1 = 0.005 * width;
+        float buttonX2 = buttonX1 + (0.05 * width);
+        float buttonY1 = 0.42 * height;
+        float buttonY2 = buttonY1 + (0.05 * height);
+
+        if (x >= buttonX1 && x <= buttonX2 && viewportY >= buttonY1 && viewportY <= buttonY2) {
+            std::cout << "Erase button clicked!" << std::endl;
+            keyInput('e', 0, 0);  // ???????? ?????? ????? ?? ??????
+            return;
         }
     }
+
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        // ????? ???? ??? ???? ??? ??????
+        if (x >= width - 70 && x <= width - 10 && viewportY >= 130 && viewportY <= 150) {
+            std::cout << "Random Color button clicked!" << std::endl;
+            randomColorMode = !randomColorMode;  // ????? ????? ???? ??? ??????
+            if (randomColorMode) {
+                std::cout << "Random color mode activated!" << std::endl;
+            }
+            else {
+                std::cout << "Random color mode deactivated!" << std::endl;
+            }
+            glutPostRedisplay();
+            return;
+        }
+    }
+
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+
+        if (x >= 0.005 * width && x <= 0.055 * width &&
+            viewportY >= 0.20 * height && viewportY <= 0.25 * height) {
+            std::cout << "Brush button clicked!" << std::endl;
+            brushMode = !brushMode;  // تغییر وضعیت قلم‌مو
+            if (brushMode) {
+                std::cout << "Brush mode activated!" << std::endl;
+            }
+            else {
+                std::cout << "Brush mode deactivated!" << std::endl;
+            }
+            glutPostRedisplay();
+            return;  // خروج از تابع، کلیک در جای دیگری پردازش نشود
+        }
+
+    }
+
+
+    if (brushMode) {
+        if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+            // اضافه کردن نقاط جدید برای brushMode
+            lastClickedPoint.setCoords(x, viewportY);
+            currentPoint = Point(x, viewportY);
+            points.push_back(currentPoint);  // اضافه کردن نقطه به لیست نقاط
+            return;
+        }
+    }
+
+
+
+    // بررسی کلیک روی دکمه‌ها
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        // دکمه Line
+        if (x >= 0.005 * width && x <= 0.055 * width && viewportY >= 0.75 * height && viewportY <= 0.8 * height) {
+            shape = 0;  // انتخاب حالت Line
+            lastClickedPoint.setCoords(0, 0);
+            currentPoint.setCoords(0, 0);
+            glutPostRedisplay();
+            return;
+        }
+
+        // دکمه Circle
+        if (x >= 0.005 * width && x <= 0.055 * width && viewportY >= 0.85 * height && viewportY <= 0.9 * height) {
+            shape = 2;  // انتخاب حالت Circle
+            lastClickedPoint.setCoords(0, 0);
+            currentPoint.setCoords(0, 0);
+            glutPostRedisplay();
+            return;
+        }
+
+        // دکمه Square
+        if (x >= 0.005 * width && x <= 0.055 * width && viewportY >= 0.95 * height && viewportY <= 1.0 * height) {
+            shape = 3;  // انتخاب حالت Square
+            lastClickedPoint.setCoords(0, 0);
+            currentPoint.setCoords(0, 0);
+            glutPostRedisplay();
+            return;
+        }
+
+        // دکمه Clear
+        if (x >= 0.005 * width && x <= 0.055 * width && viewportY >= 0.1 * height && viewportY <= 0.15 * height) {
+            clearShapes();  // پاک کردن تمام اشکال
+            return;
+        }
+
+        // دکمه رنگ قرمز
+        if (x >= width - 70 && x <= width - 10 && viewportY >= 10 && viewportY <= 30) {
+            R = 1.0f; G = 0.0f; B = 0.0f;  // تنظیم رنگ قرمز
+            lastClickedPoint.setCoords(0, 0);
+            currentPoint.setCoords(0, 0);
+            glutPostRedisplay();
+            return;
+        }
+
+        // دکمه رنگ سبز
+        if (x >= width - 70 && x <= width - 10 && viewportY >= 40 && viewportY <= 60) {
+            R = 0.0f; G = 1.0f; B = 0.0f;  // تنظیم رنگ سبز
+            lastClickedPoint.setCoords(0, 0);
+            currentPoint.setCoords(0, 0);
+            glutPostRedisplay();
+            return;
+        }
+
+        // دکمه رنگ آبی
+        if (x >= width - 70 && x <= width - 10 && viewportY >= 70 && viewportY <= 90) {
+            R = 0.0f; G = 0.0f; B = 1.0f;  // تنظیم رنگ آبی
+            lastClickedPoint.setCoords(0, 0);
+            currentPoint.setCoords(0, 0);
+            glutPostRedisplay();
+            return;
+        }
+
+        // دکمه رنگ مشکی
+        if (x >= width - 70 && x <= width - 10 && viewportY >= 100 && viewportY <= 120) {
+            R = 0.0f; G = 0.0f; B = 0.0f;  // تنظیم رنگ مشکی
+            lastClickedPoint.setCoords(0, 0);
+            currentPoint.setCoords(0, 0);
+            glutPostRedisplay();
+            return;
+        }
+    }
+
+    // در غیر این صورت، باید نقاشی‌های دیگر انجام شوند.
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        lastClickedPoint.setCoords(x, viewportY);
+        currentPoint = Point(x, viewportY);
+
+        // رسم اشکال به حالت عادی
+        switch (shape) {
+        case 0:  // رسم خط
+        {
+            Line line(lastClickedPoint, currentPoint);
+            line.setColor(R, G, B);
+            lines.push_back(line);
+            break;
+        }
+        case 2:  // رسم دایره
+        {
+            Circle circle(lastClickedPoint, currentPoint);
+            circle.setColor(R, G, B);
+            circles.push_back(circle);
+            break;
+        }
+        case 3:  // رسم مربع
+        {
+            Square square(lastClickedPoint, currentPoint);
+            square.setColor(R, G, B);
+            squares.push_back(square);
+            break;
+        }
+        }
+
+        glutPostRedisplay();  // بازسازی صفحه نمایش
+    }
+
+    // در حالت رها کردن موس
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
+        // برای حالت brushMode هیچ عملی نباید انجام شود
+        if (brushMode) return;
+
+        // اشکال نهایی بعد از رها کردن دکمه موس باید رسم شوند
+        switch (shape) {
+        case 0:  // رسم خط
+        {
+            Line line(lastClickedPoint, currentPoint);
+            line.setColor(R, G, B);
+            lines.push_back(line);
+            break;
+        }
+        case 2:  // رسم دایره
+        {
+            Circle circle(lastClickedPoint, currentPoint);
+            circle.setColor(R, G, B);
+            circles.push_back(circle);
+            break;
+        }
+        case 3:  // رسم مربع
+        {
+            Square square(lastClickedPoint, currentPoint);
+            square.setColor(R, G, B);
+            squares.push_back(square);
+            break;
+        }
+        }
+
+        glutPostRedisplay();  // بازسازی صفحه نمایش
+    }
+}
+
+
+
+
+
+
+void mouseMotion(int x, int y)
+{
+
+    currentPoint.setCoords(x, height - y);
+    Line line(lastClickedPoint, currentPoint);
+
+
+
+    if (brushMode) {
+        int dx = currentPoint.getCoordsX() - lastClickedPoint.getCoordsX();
+        int dy = currentPoint.getCoordsY() - lastClickedPoint.getCoordsY();
+        int steps = std::max(abs(dx), abs(dy));
+        float stepX = dx / static_cast<float>(steps);
+        float stepY = dy / static_cast<float>(steps);
+
+        for (int i = 0; i <= steps; i++) {
+            int interpolatedX = lastClickedPoint.getCoordsX() + i * stepX;
+            int interpolatedY = lastClickedPoint.getCoordsY() + i * stepY;
+
+            Point interpolatedPoint(interpolatedX, interpolatedY);
+
+            if (randomColorMode) {
+                setNonConflictingRandomColor();
+            }
+
+            interpolatedPoint.setColor(R, G, B);
+            points.push_back(interpolatedPoint);
+        }
+
+        lastClickedPoint = currentPoint;
+        points.push_back(currentPoint);
+    }
+
+
+
+    if (brushMode) {
+        int dx = currentPoint.getCoordsX() - lastClickedPoint.getCoordsX();
+        int dy = currentPoint.getCoordsY() - lastClickedPoint.getCoordsY();
+
+
+        int steps = std::max(abs(dx), abs(dy));
+
+
+        float stepX = dx / (float)steps;
+        float stepY = dy / (float)steps;
+
+        for (int i = 0; i <= steps; i++) {
+            int interpolatedX = lastClickedPoint.getCoordsX() + i * stepX;
+            int interpolatedY = lastClickedPoint.getCoordsY() + i * stepY;
+
+            Point interpolatedPoint(interpolatedX, interpolatedY);
+            interpolatedPoint.setColor(R, G, B);
+
+            points.push_back(interpolatedPoint);
+        }
+
+        lastClickedPoint = currentPoint;
+        points.push_back(currentPoint);
+    }
+    else {
+        Line line(lastClickedPoint, currentPoint);
+        line.setColor(R, G, B);
+        line.drawLine();
+    }
+
     glutPostRedisplay();
 }
 
-// OpenGL window reshape routine.
+void setup(void)
+{
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    glColor3f(0.0, 0.0, 0.0);
+}
+
 void resize(int w, int h)
 {
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(0.0, (float)w, 0.0, (float)h, -1.0, 1.0);
+
+
+    glOrtho(0.0, w, 0.0, h, -1.0, 1.0);
+
+
     width = w;
     height = h;
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }
 
-// Keyboard input processing routine.
-void keyInput(unsigned char key, int x, int y)
+void printInteraction(void)
 {
-    switch (key)
-    {
-    case 'p': primitive = POINT; break;
-    case 'l': primitive = LINE; break;
-    case 'r': primitive = RECTANGLE; break;
-    case 'g': isGrid = !isGrid; break;
-    case 'c': points.clear(); lines.clear(); rectangles.clear(); break;
-    case 27: exit(0); break; // ESC to exit
-    default: break;
-    }
-    glutPostRedisplay();
+    cout << "Interaction:" << endl;
+    cout << "Left mouse was clicked on the screen , hold it to draw" << endl
+        << "click right mouse for going out" << endl;
 }
 
-// Initialization routine.
-void setup(void)
-{
-    glClearColor(1.0, 1.0, 1.0, 0.0);
-}
 
-// Main routine.
+
+
 int main(int argc, char** argv)
 {
+    printInteraction();
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowSize(500, 500);
-    glutCreateWindow("Paint - OpenGL");
+
+    glutInitContextVersion(4, 3);
+    glutInitContextProfile(GLUT_COMPATIBILITY_PROFILE);
+
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA);
+    glutInitWindowSize(600, 350);
+    glutInitWindowPosition(200, 200);
+    glutCreateWindow("Paint");
     glutDisplayFunc(drawScene);
     glutReshapeFunc(resize);
-    glutMouseFunc(mouseControl);
     glutKeyboardFunc(keyInput);
+
+    glutMouseFunc(mouseControl);
+
+    glutMotionFunc(mouseMotion);
+
+    glewExperimental = GL_TRUE;
+    glewInit();
+
     setup();
+
     glutMainLoop();
-    return 0;
 }
