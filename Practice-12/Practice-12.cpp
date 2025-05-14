@@ -10,11 +10,7 @@
 const float PI = 3.14159265358979323846f;
 const int WINDOW_SIZE = 400;
 
-void init() {
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glEnable(GL_LINE_SMOOTH);
-    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-}
+
 
 void drawCircle(float radius, int segments) {
     glBegin(GL_LINE_LOOP);
@@ -124,7 +120,13 @@ void display() {
     glutSwapBuffers();
 }
 
-void reshape(int w, int h) {
+
+void setup() {
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glEnable(GL_LINE_SMOOTH);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+}
+void resize(int w, int h) {
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -150,9 +152,9 @@ int main(int argc, char** argv) {
 
     glewInit();
 
-    init();
+    setup();
     glutDisplayFunc(display);
-    glutReshapeFunc(reshape);
+    glutReshapeFunc(resize);
     glutTimerFunc(0, timer, 0);
 
     glutMainLoop();
