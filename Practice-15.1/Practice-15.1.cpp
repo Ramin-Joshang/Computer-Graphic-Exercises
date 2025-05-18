@@ -4,6 +4,7 @@
 #include <cmath>
 #pragma comment(lib, "glew32.lib")
 
+#define PI 3.14159265358979323846
 #define MAX_CIRCLES 100 
 struct Circle {
     float x, y, r;
@@ -20,10 +21,10 @@ void drawCircle(float cx, float cy, float r) {
     int numSegments = 100;
     glBegin(GL_LINE_LOOP);
     for (int i = 0; i < numSegments; ++i) {
-        float theta = 2.0f * 3.1415926f * i / numSegments;
-        float dx = r * cosf(theta);
-        float dy = r * sinf(theta);
-        glVertex2f(cx + dx, cy + dy);
+        float theta = 2.0f * PI * i / numSegments;
+        float dx = cx + r * cosf(theta);
+        float dy = cy + r * sinf(theta);
+        glVertex2f(dx, dy);
     }
     glEnd();
 }

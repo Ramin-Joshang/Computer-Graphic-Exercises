@@ -6,9 +6,7 @@
 
 #pragma comment(lib, "glew32.lib")
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 800;
-const float PI = 3.14159f;
+const float PI = 3.14159265358979323846;
 
 int exerciseIndex = 0;
 const int TOTAL_EXERCISES = 10;
@@ -196,14 +194,8 @@ void specialKeyInput(int key, int, int) {
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+    glutInitWindowSize(500, 500);
     glutCreateWindow("OpenGL 2D Shapes Demo");
-
-    if (glewInit() != GLEW_OK) {
-        std::cerr << "GLEW initialization failed.\n";
-        return 1;
-    }
-
     glutDisplayFunc(drawScene);
     glutReshapeFunc(resize);
     glutKeyboardFunc(keyInput);

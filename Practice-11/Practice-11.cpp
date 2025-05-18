@@ -5,9 +5,8 @@
 #  include <GL/glext.h>
 #pragma comment(lib, "glew32.lib") 
 
-#define PI 3.14159265
+#define PI 3.14159265358979323846
 
-// Globals.
 float R = 5.0; 
 int p = 60; 
 int q = 50; 
@@ -17,7 +16,7 @@ float offset = 0.0;
 // Drawing routine.
 void drawScene(void)
 {
-    int  i, j, k;
+    int  i, j;
 
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -30,7 +29,6 @@ void drawScene(void)
     glRotatef(Yangle, 0.0, 1.0, 0.0);
     glRotatef(Zangle, 0.0, 0.0, 1.0);
 
-    // Hemisphere properties.
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glColor3f(0.6, 0.2, 0.8);
 
@@ -82,9 +80,6 @@ void drawScene(void)
 
     glFlush();
 }
-
-// Initialization routine.
-
 
 void setup(void)
 {

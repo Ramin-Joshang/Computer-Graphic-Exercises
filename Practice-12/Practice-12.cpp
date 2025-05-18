@@ -8,7 +8,6 @@
 #pragma comment(lib, "glew32.lib")
 
 const float PI = 3.14159265358979323846f;
-const int WINDOW_SIZE = 400;
 
 
 
@@ -33,7 +32,7 @@ void drawHand(float length, float width, float angle) {
 }
 
 void display() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
@@ -78,15 +77,16 @@ void display() {
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, '1');
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, '0' + (i % 10));
     }
-
-    glColor3f(1.0f, 0.0f, 0.0f);
-    drawHand(0.8f, 2.0f, secondAngle);
+   
+    glColor3f(0.2f, 0.6f, 1.0f);
+    drawHand(0.5f, 6.0f, hourAngle);
 
     glColor3f(0.9f, 0.9f, 0.9f);
     drawHand(0.7f, 4.0f, minuteAngle);
 
-    glColor3f(0.2f, 0.6f, 1.0f);
-    drawHand(0.5f, 6.0f, hourAngle);
+    glColor3f(1.0f, 0.0f, 0.0f);
+    drawHand(0.8f, 2.0f, secondAngle);
+
 
     glColor3f(1.0f, 1.0f, 0.0f);
     glPointSize(8.0f);
@@ -97,27 +97,54 @@ void display() {
     float secAngleRad = (360.0f - secondAngle) * PI / 180.0f;
     float tipX = 0.8f * sin(secAngleRad);
     float tipY = 0.8f * cos(secAngleRad);
-
-    float boxWidth = 0.3f;
+    float boxWidth = 0.4f;
     float boxHeight = 0.1f;
-
-    glColor3f(0.0f, 0.0f, 0.0f);
-    glBegin(GL_QUADS);
-    glVertex2f(tipX - boxWidth / 2, tipY + boxHeight / 2);
-    glVertex2f(tipX + boxWidth / 2, tipY + boxHeight / 2);
-    glVertex2f(tipX + boxWidth / 2, tipY - boxHeight / 2);
-    glVertex2f(tipX - boxWidth / 2, tipY - boxHeight / 2);
-    glEnd();
+    float handMidLength = 0.45f;
 
     char timeText[9];
     sprintf(timeText, "%02d:%02d:%02d", timeInfo->tm_hour, timeInfo->tm_min, timeInfo->tm_sec);
 
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glRasterPos2f(tipX - 0.12f, tipY - 0.03f);
-    for (int i = 0; timeText[i] != '\0'; ++i)
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, timeText[i]);
+    int textLength = strlen(timeText);
+    float charWidth = 0.01f;  
+    float charHeight = 0.01f;  
 
-    glutSwapBuffers();
+    float textTotalWidth = textLength * charWidth;
+    float textOffsetX = -textTotalWidth / 2.0f;
+    float textOffsetY = -charHeight / 2.0f;
+
+    //float handMidLength = 0.5f;        
+    float horizontalShift = -0.065f;   
+
+    glPushMatrix();
+    glRotatef(secondAngle, 0.0f, 0.0f, 1.0f);
+    glTranslatef(horizontalShift, handMidLength, 0.0f); 
+    glRotatef(90.0f, 0.0f, 0.0f, 1.0f);         
+
+    glColor3f(0.0f, 0.0f, 0.0f);
+    //glLineWidth(2);
+    glBegin(GL_QUADS);
+    glVertex2f(-boxWidth / 2, boxHeight / 2);
+    glVertex2f(boxWidth / 2, boxHeight / 2);
+    glVertex2f(boxWidth / 2 , -boxHeight / 2);
+    glVertex2f(-boxWidth / 2, -boxHeight / 2);
+    glEnd();
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    
+    glRasterPos2f(-0.5f * charWidth * textLength, -0.005f); 
+    for (int i = 0; i < textLength; ++i) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, timeText[i]);
+    }
+
+
+    glPopMatrix();
+
+
+
+
+
+
+    glFlush();
 }
 
 
@@ -146,8 +173,8 @@ void timer(int) {
 
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
-    glutInitWindowSize(WINDOW_SIZE, WINDOW_SIZE);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA | GLUT_DEPTH);
+    glutInitWindowSize(500, 500);
     glutCreateWindow("Ramin Joshang Practice-12");
 
     glewInit();

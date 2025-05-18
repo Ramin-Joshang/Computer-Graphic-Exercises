@@ -26,9 +26,9 @@ void drawCircle(float cx, float cy, float r) {
     glBegin(GL_LINE_LOOP);
     for (int i = 0; i < numSegments; ++i) {
         float theta = 2.0f * 3.1415926f * i / numSegments;
-        float dx = r * cosf(theta);
-        float dy = r * sinf(theta);
-        glVertex2f(cx + dx, cy + dy);
+        float dx = cx + r * cosf(theta);
+        float dy = cy + r * sinf(theta);
+        glVertex2f(dx, dy);
     }
     glEnd();
 }
@@ -127,7 +127,7 @@ void keyInput(unsigned char key, int x, int y) {
 
 }
 
-// انتخاب رنگ‌ها
+// Choose Color
 void setColor(int option) {
     switch (option) {
     case 1: currentColor[0] = 1.0f; currentColor[1] = 0.0f; currentColor[2] = 0.0f; break; // Red
