@@ -45,7 +45,7 @@ void drawText(const char* text, float x, float y, float angle)
 	glPopMatrix();
 }
 
-void display()
+void drawScene()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
@@ -67,7 +67,7 @@ void display()
 	drawCircle(0.9f, 100);
 
 	glColor3f(0.6f, 0.6f, 0.6f);
-	for (int i = 0; i < 70; ++i)
+	for (int i = 0; i < 12; ++i)
 	{
 		glPushMatrix();
 		glRotatef(i * 30, 0.0f, 0.0f, 1.0f);
@@ -120,16 +120,6 @@ void display()
 	char timeText[9];
 	sprintf(timeText, "%02d:%02d:%02d", timeInfo->tm_hour, timeInfo->tm_min, timeInfo->tm_sec);
 
-	int textLength = strlen(timeText);
-	float charWidth = 0.01f;
-	float charHeight = 0.015f;
-
-	float textTotalWidth = textLength * charWidth;
-	float textOffsetX = -textTotalWidth / 2.0f;
-	float textOffsetY = -charHeight / 2.0f;
-
-	float horizontalShift = -0.01f;
-
 	glPushMatrix();
 	glRotatef(secondAngle, 0.0f, 0.0f, 1.0f);
 	glTranslatef(-0.06f, handMidLength, 0.0f);
@@ -148,10 +138,6 @@ void display()
 
 	glPopMatrix();
 
-	/*  glRasterPos2f(-0.5f * charWidth * textLength, -0.005f);
-	  for (int i = 0; i < textLength; ++i) {
-		  glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, timeText[i]);
-	  }*/
 
 	glFlush();
 }
@@ -195,7 +181,7 @@ int main(int argc, char** argv)
 	glewInit();
 
 	setup();
-	glutDisplayFunc(display);
+	glutDisplayFunc(drawScene);
 	glutReshapeFunc(resize);
 	glutTimerFunc(0, timer, 0);
 

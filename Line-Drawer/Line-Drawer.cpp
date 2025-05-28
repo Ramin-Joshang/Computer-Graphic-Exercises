@@ -7,8 +7,8 @@
 
 using namespace std;
 
-static int width, height;
-static float pointSize = 3.0;
+int width, height;
+float pointSize = 3.0;
 
 class Point
 {
@@ -50,8 +50,8 @@ void Line::drawLine() const
 
 vector<Point> points;
 vector<Line> lines;
-static bool isFirstPoint = false;
-static int tempX, tempY;
+bool isFirstPoint = false;
+int tempX, tempY;
 
 void drawScene()
 {

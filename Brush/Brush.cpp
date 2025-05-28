@@ -7,8 +7,8 @@
 
 using namespace std;
 
-static int width, height;
-static bool isDrawing = false;
+int width, height;
+bool isDrawing = false;
 
 class Point {
 public:
